@@ -3,11 +3,21 @@ import time
 import logging
 import argparse
 import geopandas as gpd
+from datetime import datetime
 
 import gtfsutils
 import gtfsutils.filter
 
 logger = logging.getLogger(__name__)
+
+
+def prepare_bounds(bounds):
+    if bounds.startswith("["):
+        return json.loads(bounds)
+    else:
+        return gpd.read_file(bounds).geometry.unary_union
+
+
 
 
 def main():
@@ -18,15 +28,25 @@ def main():
     parser_filter = subparsers.add_parser("filter", help="Filter method")
     parser_filter.add_argument(dest="src", help="Input GTFS filepath")
     parser_filter.add_argument(dest="dst", help="Output GTFS filepath")
-    parser_filter.add_argument(dest="bounds", help="Filter boundary")
+    parser_filter.add_argument("-b", "--bounds",
+        dest="bounds",
+        help="Filter boundary")
     parser_filter.add_argument("-t", "--target",
         dest='target',
-        help="Filter target (stops, shapes)",
+        help="Filter target (stops, shapes, calendar)",
         default="stops")
     parser_filter.add_argument("-o", "--operation",
         dest='operation',
         help="Filter operation (within, intersects)",
         default="within")
+    parser_filter.add_argument("-sd", "--start_date",
+        dest="start_date",
+        help="Filter start date (ISO 8601 format: e.g. '20240213')",
+        default=None)
+    parser_filter.add_argument("-ed", "--end_date",
+        dest="end_date",
+        help="Filter end date (ISO 8601 format: e.g. '20240213')",
+        default=None)
     parser_filter.add_argument("--overwrite", action='store_true',
         dest='overwrite', help="Overwrite if exists")
     parser_filter.add_argument('-v', '--verbose', action='store_true',
@@ -47,7 +67,7 @@ def main():
     args = parser.parse_args()
 
     # # Verbose output
-    if  'verbose' in args:
+    if 'verbose' in args:
         log_level = logging.DEBUG if args.verbose else logging.INFO
         logging.basicConfig(
             format='%(asctime)s [%(levelname)s] %(message)s',
@@ -58,15 +78,15 @@ def main():
         print(f"{gtfsutils.__name__} {gtfsutils.__version__}")
 
     elif args.method == "filter":
-        assert args.bounds is not None, "No bounds defined"
         assert args.src is not None, "No input file specified"
         assert args.dst is not None, "No output file specified"
 
-        # Prepare bounds
-        if args.bounds.startswith("["):
-            bounds = json.loads(args.bounds)
-        else:
-            bounds = gpd.read_file(args.bounds).geometry.unary_union
+        if args.target in ["stops", "shapes"]:
+            assert args.bounds is not None, "No bounds defined"
+
+        elif args.target == "calendar":
+            assert args.start_date is not None, "No start date defined"
+            assert args.end_date is not None, "No end date defined"
 
         # Load GTFS
         t = time.time()
@@ -76,13 +96,24 @@ def main():
 
         # Filter GTFS
         if args.target == 'stops':
+            bounds = prepare_bounds(args.bounds)
             t = time.time()
             gtfsutils.filter.spatial_filter_by_stops(
                 df_dict, bounds)
         elif args.target == 'shapes':
+            bounds = prepare_bounds(args.bounds)
             t = time.time()
             gtfsutils.filter.spatial_filter_by_shapes(
                 df_dict, bounds, operation=args.operation)
+        elif args.target == 'calendar':
+            # Prepare start_date and end_date
+            start_date = datetime.strptime(args.start_date, "%Y%m%d")
+            end_date = datetime.strptime(args.end_date, "%Y%m%d")
+            t = time.time()
+            gtfsutils.filter.filter_by_calendar(
+                df_dict, start_date, end_date)
+            import sys
+            sys.exit()
         else:
             raise ValueError(
                 f"Target {args.target} not supported!")

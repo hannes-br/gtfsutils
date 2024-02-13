@@ -1,5 +1,6 @@
 import shapely
 import numpy as np
+import pandas as pd
 from . import load_stops, load_shapes
 
 
@@ -17,10 +18,14 @@ def spatial_filter_by_stops(df_dict, filter_geometry):
 
     # Filter stops.
     gdf_stops = load_stops(df_dict)
+    print("loaded stops")
+    print("intersecting")
     mask = gdf_stops.intersects(geom)
+    print("intersected")
 
     gdf_stops = gdf_stops[mask]
     stop_ids = gdf_stops['stop_id'].values
+    print("filter stops now")
     filter_by_stop_ids(df_dict, stop_ids)
 
     # Subset shapes.
@@ -228,3 +233,11 @@ def filter_by_agency_ids(df_dict, agency_ids):
         mask = df_dict['transfers']['from_stop_id'].isin(stops_ids) \
              & df_dict['transfers']['to_stop_id'].isin(stops_ids)
         df_dict['transfers'] = df_dict['transfers'][mask]
+
+
+def filter_by_calendar(df_dict, start_date, end_date):
+    mask = df_dict["calendar_dates"].loc[
+        (pd.to_datetime(df_dict["calendar_dates"]["date"], format="%Y%m%d") <= end_date) 
+        & (pd.to_datetime(df_dict["calendar_dates"]["date"], format="%Y%m%d") >= start_date)
+    ]
+    print(mask)

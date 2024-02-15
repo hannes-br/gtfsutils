@@ -253,9 +253,6 @@ def filter_by_calendar(df_dict, start_date, end_date):
     ) & (pd.to_datetime(df_dict["calendar"]["end_date"], format="%Y%m%d") >= start_date)
     df_dict["calendar"] = df_dict["calendar"][mask]
     calendar_service_ids = df_dict["calendar"]["service_id"].values
-    fill_missing_service_ids_in_calendar(
-        df_dict, calendar_dates_service_ids, calendar_service_ids
-    )
     service_ids = np.unique(
         np.concatenate((calendar_dates_service_ids, calendar_service_ids))
     )
@@ -311,43 +308,3 @@ def filter_by_service_ids(df_dict, service_ids):
     if "frequencies" in df_dict:
         mask = df_dict["frequencies"]["trip_id"].isin(trip_ids)
         df_dict["frequencies"] = df_dict["frequencies"][mask]
-
-
-def fill_missing_service_ids_in_calendar(
-    df_dict, calendar_dates_service_ids, calendar_service_ids
-):
-    """Fill missing service ids which are present in calendar_dates but not in calendar
-
-    Relationship between calendar and calendar_dates is defined via the service_id in
-    the following PostgreSQL schema. A service_id present in calendar_dates also has to
-    be present in calendar. A dummy entry in calendar is created to align with the
-    schema https://github.com/fitnr/gtfs-sql-importer/blob/master/sql/schema.sql
-    """
-    service_ids_not_in_calendar = np.unique(
-        [
-            item
-            for item in calendar_dates_service_ids
-            if item not in calendar_service_ids
-        ]
-    )
-    for service_id in service_ids_not_in_calendar:
-        mask = df_dict["calendar_dates"]["service_id"] == service_id
-        df_calendar_dates_subset = df_dict["calendar_dates"][mask].iloc[0]
-        dummy_calendar_service = pd.DataFrame(
-            {
-                "monday": 0,
-                "tuesday": 0,
-                "wednesday": 0,
-                "thursday": 0,
-                "friday": 0,
-                "saturday": 0,
-                "sunday": 0,
-                "start_date": df_calendar_dates_subset["date"],
-                "end_date": df_calendar_dates_subset["date"],
-                "service_id": service_id,
-            },
-            index=[0],
-        )
-        df_dict["calendar"] = pd.concat(
-            [dummy_calendar_service, df_dict["calendar"].loc[:]]
-        ).reset_index(drop=True)

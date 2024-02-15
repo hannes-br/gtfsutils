@@ -65,46 +65,6 @@ COLUMNS_DEPENDENCY_DICT = {
     "shapes": ("shape_id", ["trips"]),
 }
 
-GTFS_ENUM_DATA_TYPES = {
-    "attributions": {"is_producer": "Int64"},
-    "calendar": {
-        "monday": "Int64",
-        "tuesday": "Int64",
-        "wednesday": "Int64",
-        "thursday": "Int64",
-        "friday": "Int64",
-        "saturday": "Int64",
-        "sunday": "Int64",
-    },
-    "calendar_dates": {"exception_type": "Int64"},
-    "routes": {
-        "route_type": "Int64",
-        "continuous_pickup": "Int64",
-        "continuous_drop_off": "Int64",
-    },
-    "stop_times": {
-        "pickup_type": "Int64",
-        "drop_off_type": "Int64",
-        "continuous_pickup": "Int64",
-        "continuous_drop_off": "Int64",
-        "timepoint": "Int64",
-    },
-    "stops": {"location_type": "Int64", "wheelchair_boarding": "Int64"},
-    "transfers": {"transfer_type": "Int64"},
-    "trips": {
-        "direction_id": "Int64",
-        "wheelchair_accessible": "Int64",
-        "bikes_allowed": "Int64",
-    },
-}
-
-
-def cast_gtfs_enum_columns(df_dict, filekey):
-    if filekey in GTFS_ENUM_DATA_TYPES.keys():
-        for column, dtype in GTFS_ENUM_DATA_TYPES[filekey].items():
-            if column in df_dict[filekey].columns:
-                df_dict[filekey][column] = df_dict[filekey][column].astype(dtype)
-
 
 def load_gtfs(filepath, subset=None):
     df_dict = {}
@@ -116,7 +76,6 @@ def load_gtfs(filepath, subset=None):
                     df_dict[filekey] = pd.read_csv(
                         os.path.join(filepath, filename), low_memory=False
                     )
-                    cast_gtfs_enum_columns(df_dict, filekey)
                 except Exception as e:
                     logger.error(f"[{e.__class__.__name__}] {e} for {filename}")
     else:
@@ -128,7 +87,6 @@ def load_gtfs(filepath, subset=None):
                         df_dict[filekey] = pd.read_csv(
                             z.open(filename), low_memory=False
                         )
-                        cast_gtfs_enum_columns(df_dict, filekey)
                     except Exception as e:
                         logger.error(f"[{e.__class__.__name__}] {e} for {filename}")
 

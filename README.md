@@ -1,21 +1,13 @@
 # gtfsutils
 
-[![](https://img.shields.io/pypi/v/gtfsutils.svg)](https://pypi.python.org/pypi/gtfsutils)
-
 GTFS command-line tool and Python GTFS utility library
 
 # Installation
 
-To install the package from PyPi:
-
-```bash
-pip install gtfsutils
-```
-
 To install the development version from GitHub:
 
 ```bash
-git clone git@github.com:triply-at/gtfsutils.git
+git clone git@github.com:hannes-br/gtfsutils.git
 cd gtfsutils
 pip install -e .  # Install in editable mode
 ```
@@ -32,7 +24,7 @@ The package can be also used as a command-line tool. There are three sub-tools a
 
 ### Filter
 
-The filter tool applies a spatial filter to a GTFS file. You can either filter based on stop locations or on trip shapes. The filter can be specified either as a bounding box (xmin, ymin, xmax, ymax) or as a file path (e.g. to a GeoJSON or GPKG file).
+The filter tool applies a filter to a GTFS file. You can either spatially filter based on stop locations or on trip shapes or filter by a daterange considering calendar and calendar_dates. The spatial filter can be specified either as a bounding box (xmin, ymin, xmax, ymax) or as a file path (e.g. to a GeoJSON or GPKG file). The daterange filter can be specified by a start and end date ('{"start_date": "YYYYMMDD", "end_date": "YYYYMMDD"}').
 
 Here is how to spatially filter a GTFS file based on stop locations, using a bounding box:
 
@@ -44,6 +36,12 @@ Here is how to spatially filter a GTFS file based on trip shapes, using a GeoJSO
 
 ```bash
 gtfsutils filter -t shapes data/vienna.gtfs.zip data/vienna-filtered.gtfs.zip data/area.geojson
+```
+
+Here is how to filter a GTFS file based on calendar and calendar_dates, using a start and end date:
+
+```bash
+gtfsutils filter -t shapes data/vienna.gtfs.zip data/vienna-filtered.gtfs.zip '{"start_date": "20240121", "end_date": "20240129"}'
 ```
 
 For more information, type:

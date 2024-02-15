@@ -1,13 +1,21 @@
 # gtfsutils
 
+[![](https://img.shields.io/pypi/v/gtfsutils.svg)](https://pypi.python.org/pypi/gtfsutils)
+
 GTFS command-line tool and Python GTFS utility library
 
 # Installation
 
+To install the package from PyPi:
+
+```bash
+pip install gtfsutils
+```
+
 To install the development version from GitHub:
 
 ```bash
-git clone git@github.com:hannes-br/gtfsutils.git
+git clone git@github.com:triply-at/gtfsutils.git
 cd gtfsutils
 pip install -e .  # Install in editable mode
 ```

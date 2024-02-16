@@ -20,7 +20,6 @@ def spatial_filter_by_stops(df_dict, filter_geometry):
     else:
         raise ValueError(f"filter_geometry type {type(filter_geometry)} not supported!")
 
-    # Filter stops.
     gdf_stops = load_stops(df_dict)
     mask = gdf_stops.intersects(geom)
 
@@ -28,7 +27,6 @@ def spatial_filter_by_stops(df_dict, filter_geometry):
     stop_ids = gdf_stops["stop_id"].values
     filter_by_stop_ids(df_dict, stop_ids)
 
-    # Subset shapes.
     if "shapes" in df_dict:
         gdf_shapes = load_shapes(df_dict, geom_type="point")
         mask = gdf_shapes.intersects(geom)
@@ -39,58 +37,92 @@ def filter_by_stop_ids(df_dict, stop_ids):
     if not isinstance(stop_ids, list) and not isinstance(stop_ids, np.ndarray):
         stop_ids = [stop_ids]
 
-    # Filter stops.txt
-    mask = df_dict["stops"]["stop_id"].isin(stop_ids)
+    filter_stops_by_stop_ids(df_dict, stop_ids)
+
+    filter_stop_times_by_stop_ids(df_dict, stop_ids)
+
+    trip_ids = df_dict["stop_times"]["trip_id"].values
+    filter_trips_by_trip_ids(df_dict, trip_ids)
+
+    route_ids = df_dict["trips"]["route_id"].values
+    filter_routes_by_route_ids(df_dict, route_ids)
+
+    agency_ids = df_dict["routes"]["agency_id"].values
+    filter_agency_by_agency_ids(df_dict, agency_ids)
+
+    if "shapes" in df_dict:
+        shape_ids = df_dict["trips"]["shape_id"].values
+        filter_shapes_by_shape_ids(df_dict, shape_ids)
+
+    if "calendar" in df_dict:
+        service_ids = df_dict["trips"]["service_id"].values
+        filter_calendar_by_service_ids(df_dict, service_ids)
+
+    if "calendar_dates" in df_dict:
+        service_ids = df_dict["trips"]["service_id"].values
+        filter_calendar_dates_by_service_ids(df_dict, service_ids)
+
+    if "frequencies" in df_dict:
+        filter_frequencies_by_trip_ids(df_dict, trip_ids)
+
+    if "transfers" in df_dict:
+        filter_transfers_by_stop_ids(df_dict, stop_ids)
+
+
+def filter_stops_by_stop_ids(df_dict, stop_ids):
+    stop_ids_mask = df_dict["stops"]["stop_id"].isin(stop_ids)
+    parent_stations = df_dict["stops"].loc[stop_ids_mask, "parent_station"].values
+    mask = df_dict["stops"]["stop_id"].isin(
+        np.unique(np.concatenate((stop_ids, parent_stations)))
+    )
     df_dict["stops"] = df_dict["stops"][mask]
 
-    # Filter stop_times.txt
+
+def filter_stop_times_by_stop_ids(df_dict, stop_ids):
     mask = df_dict["stop_times"]["stop_id"].isin(stop_ids)
     df_dict["stop_times"] = df_dict["stop_times"][mask]
 
-    # Filter trips.txt
-    trip_ids = df_dict["stop_times"]["trip_id"].values
+
+def filter_trips_by_trip_ids(df_dict, trip_ids):
     mask = df_dict["trips"]["trip_id"].isin(trip_ids)
     df_dict["trips"] = df_dict["trips"][mask]
 
-    # Filter route.txt
-    route_ids = df_dict["trips"]["route_id"].values
+
+def filter_routes_by_route_ids(df_dict, route_ids):
     mask = df_dict["routes"]["route_id"].isin(route_ids)
     df_dict["routes"] = df_dict["routes"][mask]
 
-    # Filter agency.txt
-    agency_ids = df_dict["routes"]["agency_id"].values
+
+def filter_agency_by_agency_ids(df_dict, agency_ids):
     mask = df_dict["agency"]["agency_id"].isin(agency_ids)
     df_dict["agency"] = df_dict["agency"][mask]
 
-    # Filter shapes.txt
-    if "shapes" in df_dict:
-        shape_ids = df_dict["trips"]["shape_id"].values
-        mask = df_dict["shapes"]["shape_id"].isin(shape_ids)
-        df_dict["shapes"] = df_dict["shapes"][mask]
 
-    # Filter calendar.txt
-    if "calendar" in df_dict:
-        service_ids = df_dict["trips"]["service_id"].values
-        mask = df_dict["calendar"]["service_id"].isin(service_ids)
-        df_dict["calendar"] = df_dict["calendar"][mask]
+def filter_shapes_by_shape_ids(df_dict, shape_ids):
+    mask = df_dict["shapes"]["shape_id"].isin(shape_ids)
+    df_dict["shapes"] = df_dict["shapes"][mask]
 
-    # Filter calendar_dates.txt
-    if "calendar_dates" in df_dict:
-        service_ids = df_dict["trips"]["service_id"].values
-        mask = df_dict["calendar_dates"]["service_id"].isin(service_ids)
-        df_dict["calendar_dates"] = df_dict["calendar_dates"][mask]
 
-    # Filter frequencies.txt
-    if "frequencies" in df_dict:
-        mask = df_dict["frequencies"]["trip_id"].isin(trip_ids)
-        df_dict["frequencies"] = df_dict["frequencies"][mask]
+def filter_calendar_by_service_ids(df_dict, service_ids):
+    mask = df_dict["calendar"]["service_id"].isin(service_ids)
+    df_dict["calendar"] = df_dict["calendar"][mask]
 
-    # Filter transfers.txt
-    if "transfers" in df_dict:
-        mask = df_dict["transfers"]["from_stop_id"].isin(stop_ids) & df_dict[
-            "transfers"
-        ]["to_stop_id"].isin(stop_ids)
-        df_dict["transfers"] = df_dict["transfers"][mask]
+
+def filter_calendar_dates_by_service_ids(df_dict, service_ids):
+    mask = df_dict["calendar_dates"]["service_id"].isin(service_ids)
+    df_dict["calendar_dates"] = df_dict["calendar_dates"][mask]
+
+
+def filter_frequencies_by_trip_ids(df_dict, trip_ids):
+    mask = df_dict["frequencies"]["trip_id"].isin(trip_ids)
+    df_dict["frequencies"] = df_dict["frequencies"][mask]
+
+
+def filter_transfers_by_stop_ids(df_dict, stop_ids):
+    mask = df_dict["transfers"]["from_stop_id"].isin(stop_ids) & df_dict["transfers"][
+        "to_stop_id"
+    ].isin(stop_ids)
+    df_dict["transfers"] = df_dict["transfers"][mask]
 
 
 def spatial_filter_by_shapes(df_dict, filter_geometry, operation="within"):
@@ -103,7 +135,6 @@ def spatial_filter_by_shapes(df_dict, filter_geometry, operation="within"):
     else:
         raise ValueError(f"filter_geometry type {type(filter_geometry)} not supported!")
 
-    # Filter shapes
     gdf_shapes = load_shapes(df_dict)
     if operation == "within":
         mask = gdf_shapes.within(geom)
@@ -121,115 +152,91 @@ def filter_by_shape_ids(df_dict, shape_ids):
     if not isinstance(shape_ids, list) and not isinstance(shape_ids, np.ndarray):
         shape_ids = [shape_ids]
 
-    # Filter shapes.txt
-    mask = df_dict["shapes"]["shape_id"].isin(shape_ids)
-    df_dict["shapes"] = df_dict["shapes"][mask]
+    filter_shapes_by_shape_ids(df_dict, shape_ids)
 
-    # Filter trips.txt
+    filter_trips_by_shape_ids(df_dict, shape_ids)
+
+    route_ids = df_dict["trips"]["route_id"].values
+    filter_routes_by_route_ids(df_dict, route_ids)
+
+    agency_ids = df_dict["routes"]["agency_id"].values
+    filter_agency_by_agency_ids(df_dict, agency_ids)
+
+    trip_ids = df_dict["trips"]["trip_id"].values
+    filter_stop_times_by_trip_ids(df_dict, trip_ids)
+
+    stop_ids = df_dict["stop_times"]["stop_id"].values
+    filter_stops_by_stop_ids(df_dict, stop_ids)
+
+    if "calendar" in df_dict:
+        service_ids = df_dict["trips"]["service_id"].values
+        filter_calendar_by_service_ids(df_dict, service_ids)
+
+    if "calendar_dates" in df_dict:
+        service_ids = df_dict["trips"]["service_id"].values
+        filter_calendar_dates_by_service_ids(df_dict, service_ids)
+
+    if "frequencies" in df_dict:
+        filter_frequencies_by_trip_ids(df_dict, trip_ids)
+
+    if "transfers" in df_dict:
+        filter_transfers_by_stop_ids(df_dict, stop_ids)
+
+
+def filter_trips_by_shape_ids(df_dict, shape_ids):
     mask = df_dict["trips"]["shape_id"].isin(shape_ids)
     df_dict["trips"] = df_dict["trips"][mask]
 
-    # Filter route.txt
-    route_ids = df_dict["trips"]["route_id"].values
-    mask = df_dict["routes"]["route_id"].isin(route_ids)
-    df_dict["routes"] = df_dict["routes"][mask]
 
-    # Filter agency.txt
-    agency_ids = df_dict["routes"]["agency_id"].values
-    mask = df_dict["agency"]["agency_id"].isin(agency_ids)
-    df_dict["agency"] = df_dict["agency"][mask]
-
-    # Filter stop_times.txt
-    trip_ids = df_dict["trips"]["trip_id"].values
+def filter_stop_times_by_trip_ids(df_dict, trip_ids):
     mask = df_dict["stop_times"]["trip_id"].isin(trip_ids)
     df_dict["stop_times"] = df_dict["stop_times"][mask]
-
-    # Filter stops.txt
-    stop_ids = df_dict["stop_times"]["stop_id"].values
-    mask = df_dict["stops"]["stop_id"].isin(stop_ids)
-    df_dict["stops"] = df_dict["stops"][mask]
-
-    # Filter calendar.txt
-    if "calendar" in df_dict:
-        service_ids = df_dict["trips"]["service_id"].values
-        mask = df_dict["calendar"]["service_id"].isin(service_ids)
-        df_dict["calendar"] = df_dict["calendar"][mask]
-
-    # Filter calendar_dates.txt
-    if "calendar_dates" in df_dict:
-        service_ids = df_dict["trips"]["service_id"].values
-        mask = df_dict["calendar_dates"]["service_id"].isin(service_ids)
-        df_dict["calendar_dates"] = df_dict["calendar_dates"][mask]
-
-    # Filter frequencies.txt
-    if "frequencies" in df_dict:
-        mask = df_dict["frequencies"]["trip_id"].isin(trip_ids)
-        df_dict["frequencies"] = df_dict["frequencies"][mask]
-
-    # Filter transfers.txt
-    if "transfers" in df_dict:
-        mask = df_dict["transfers"]["from_stop_id"].isin(stop_ids) & df_dict[
-            "transfers"
-        ]["to_stop_id"].isin(stop_ids)
-        df_dict["transfers"] = df_dict["transfers"][mask]
 
 
 def filter_by_agency_ids(df_dict, agency_ids):
     if not isinstance(agency_ids, list) and not isinstance(agency_ids, np.ndarray):
         agency_ids = [agency_ids]
 
-    # Filter agency.txt
-    mask = df_dict["agency"]["agency_id"].isin(agency_ids)
-    df_dict["agency"] = df_dict["agency"][mask]
+    filter_agency_by_agency_ids(df_dict, agency_ids)
 
-    # Filter routes.txt
+    filter_routes_by_agency_ids(df_dict, agency_ids)
+
+    route_ids = df_dict["routes"]["route_id"]
+    filter_trips_by_route_ids(df_dict, route_ids)
+
+    trip_ids = df_dict["trips"]["trip_id"]
+    filter_stop_times_by_trip_ids(df_dict, trip_ids)
+
+    stop_ids = df_dict["stop_times"]["stop_id"].values
+    filter_stops_by_stop_ids(df_dict, stop_ids)
+
+    if "shapes" in df_dict:
+        shape_ids = df_dict["trips"]["shape_id"].values
+        filter_shapes_by_shape_ids(df_dict, shape_ids)
+
+    if "calendar" in df_dict:
+        service_ids = df_dict["trips"]["service_id"].values
+        filter_calendar_by_service_ids(df_dict, service_ids)
+
+    if "calendar_dates" in df_dict:
+        service_ids = df_dict["trips"]["service_id"].values
+        filter_calendar_dates_by_service_ids(df_dict, service_ids)
+
+    if "frequencies" in df_dict:
+        filter_frequencies_by_trip_ids(df_dict, trip_ids)
+
+    if "transfers" in df_dict:
+        filter_transfers_by_stop_ids(df_dict, stop_ids)
+
+
+def filter_routes_by_agency_ids(df_dict, agency_ids):
     mask = df_dict["routes"]["agency_id"].isin(agency_ids)
     df_dict["routes"] = df_dict["routes"][mask]
 
-    # Filter trips.txt
-    routes_ids = df_dict["routes"]["route_id"]
-    mask = df_dict["trips"]["route_id"].isin(routes_ids)
+
+def filter_trips_by_route_ids(df_dict, route_ids):
+    mask = df_dict["trips"]["route_id"].isin(route_ids)
     df_dict["trips"] = df_dict["trips"][mask]
-
-    # Filter stop_times.txt
-    trip_ids = df_dict["trips"]["trip_id"]
-    mask = df_dict["stop_times"]["trip_id"].isin(trip_ids)
-    df_dict["stop_times"] = df_dict["stop_times"][mask]
-
-    # Filter stops.txt
-    stops_ids = df_dict["stop_times"]["stop_id"].values
-    mask = df_dict["stops"]["stop_id"].isin(stops_ids)
-    df_dict["stops"] = df_dict["stops"][mask]
-
-    # Filter shapes.txt
-    if "shapes" in df_dict:
-        shapes_ids = df_dict["trips"]["shape_id"].values
-        mask = df_dict["shapes"]["shape_id"].isin(shapes_ids)
-        df_dict["shapes"] = df_dict["shapes"][mask]
-
-    # Filter calendar.txt
-    if "calendar" in df_dict:
-        service_ids = df_dict["trips"]["service_id"].values
-        mask = df_dict["calendar"]["service_id"].isin(service_ids)
-        df_dict["calendar"] = df_dict["calendar"][mask]
-
-    # Filter calendar_dates.txt
-    if "calendar_dates" in df_dict:
-        service_ids = df_dict["trips"]["service_id"].values
-        mask = df_dict["calendar_dates"]["service_id"].isin(service_ids)
-        df_dict["calendar_dates"] = df_dict["calendar_dates"][mask]
-
-    # Filter frequencies.txt
-    if "frequencies" in df_dict:
-        mask = df_dict["frequencies"]["trip_id"].isin(trip_ids)
-        df_dict["frequencies"] = df_dict["frequencies"][mask]
-
-    # Filter transfers.txt
-    if "transfers" in df_dict:
-        mask = df_dict["transfers"]["from_stop_id"].isin(stops_ids) & df_dict[
-            "transfers"
-        ]["to_stop_id"].isin(stops_ids)
-        df_dict["transfers"] = df_dict["transfers"][mask]
 
 
 def filter_by_calendar(df_dict, start_date, end_date):
@@ -238,20 +245,10 @@ def filter_by_calendar(df_dict, start_date, end_date):
     if not isinstance(end_date, datetime):
         raise ValueError(f"end_date type {type(end_date)} not supported!")
 
-    # Filter calendar_dates
-    mask = (
-        pd.to_datetime(df_dict["calendar_dates"]["date"], format="%Y%m%d") <= end_date
-    ) & (
-        pd.to_datetime(df_dict["calendar_dates"]["date"], format="%Y%m%d") >= start_date
-    )
-    df_dict["calendar_dates"] = df_dict["calendar_dates"][mask]
+    filter_calendar_by_start_and_end_date(df_dict, start_date, end_date)
     calendar_dates_service_ids = df_dict["calendar_dates"]["service_id"].values
 
-    # Filter calendar
-    mask = (
-        pd.to_datetime(df_dict["calendar"]["start_date"], format="%Y%m%d") <= end_date
-    ) & (pd.to_datetime(df_dict["calendar"]["end_date"], format="%Y%m%d") >= start_date)
-    df_dict["calendar"] = df_dict["calendar"][mask]
+    filter_calendar_dates_by_start_and_end_dates(df_dict, start_date, end_date)
     calendar_service_ids = df_dict["calendar"]["service_id"].values
     fill_missing_service_ids_in_calendar(
         df_dict, calendar_dates_service_ids, calendar_service_ids
@@ -259,58 +256,51 @@ def filter_by_calendar(df_dict, start_date, end_date):
     service_ids = np.unique(
         np.concatenate((calendar_dates_service_ids, calendar_service_ids))
     )
-    filter_by_service_ids(df_dict, service_ids)
 
+    filter_trips_by_service_ids(df_dict, service_ids)
 
-def filter_by_service_ids(df_dict, service_ids):
-    if not isinstance(service_ids, list) and not isinstance(service_ids, np.ndarray):
-        service_ids = [service_ids]
-
-    # Filter trips.txt
-    mask = df_dict["trips"]["service_id"].isin(service_ids)
-    df_dict["trips"] = df_dict["trips"][mask]
-
-    # Filter stop_times.txt
     trip_ids = df_dict["trips"]["trip_id"].values
-    mask = df_dict["stop_times"]["trip_id"].isin(trip_ids)
-    df_dict["stop_times"] = df_dict["stop_times"][mask]
+    filter_stop_times_by_trip_ids(df_dict, trip_ids)
 
-    # Filter stops.txt
     stop_ids = df_dict["stop_times"]["stop_id"].values
-    stop_ids_mask = df_dict["stops"]["stop_id"].isin(stop_ids)
-    parent_stations = df_dict["stops"].loc[stop_ids_mask, "parent_station"].values
-    mask = df_dict["stops"]["stop_id"].isin(
-        np.unique(np.concatenate((stop_ids, parent_stations)))
-    )
-    df_dict["stops"] = df_dict["stops"][mask]
+    filter_stops_by_stop_ids(df_dict, stop_ids)
 
-    # Filter routes.txt
     route_ids = df_dict["trips"]["route_id"].values
-    mask = df_dict["routes"]["route_id"].isin(route_ids)
-    df_dict["routes"] = df_dict["routes"][mask]
+    filter_routes_by_route_ids(df_dict, route_ids)
 
-    # Filter agency.txt
     agency_ids = df_dict["routes"]["agency_id"].values
-    mask = df_dict["agency"]["agency_id"].isin(agency_ids)
-    df_dict["agency"] = df_dict["agency"][mask]
+    filter_agency_by_agency_ids(df_dict, agency_ids)
 
-    # Filter shapes.txt
     if "shapes" in df_dict:
         shape_ids = df_dict["trips"]["shape_id"].values
-        mask = df_dict["shapes"]["shape_id"].isin(shape_ids)
-        df_dict["shapes"] = df_dict["shapes"][mask]
+        filter_shapes_by_shape_ids(df_dict, shape_ids)
 
-    # Filter transfers.txt
     if "transfers" in df_dict:
-        mask = df_dict["transfers"]["from_stop_id"].isin(stop_ids) & df_dict[
-            "transfers"
-        ]["to_stop_id"].isin(stop_ids)
-        df_dict["transfers"] = df_dict["transfers"][mask]
+        filter_transfers_by_stop_ids(df_dict, stop_ids)
 
-    # Filter frequencies.txt
     if "frequencies" in df_dict:
-        mask = df_dict["frequencies"]["trip_id"].isin(trip_ids)
-        df_dict["frequencies"] = df_dict["frequencies"][mask]
+        filter_frequencies_by_trip_ids(df_dict, trip_ids)
+
+
+def filter_calendar_by_start_and_end_date(df_dict, start_date, end_date):
+    mask = (
+        pd.to_datetime(df_dict["calendar_dates"]["date"], format="%Y%m%d") <= end_date
+    ) & (
+        pd.to_datetime(df_dict["calendar_dates"]["date"], format="%Y%m%d") >= start_date
+    )
+    df_dict["calendar_dates"] = df_dict["calendar_dates"][mask]
+
+
+def filter_calendar_dates_by_start_and_end_dates(df_dict, start_date, end_date):
+    mask = (
+        pd.to_datetime(df_dict["calendar"]["start_date"], format="%Y%m%d") <= end_date
+    ) & (pd.to_datetime(df_dict["calendar"]["end_date"], format="%Y%m%d") >= start_date)
+    df_dict["calendar"] = df_dict["calendar"][mask]
+
+
+def filter_trips_by_service_ids(df_dict, service_ids):
+    mask = df_dict["trips"]["service_id"].isin(service_ids)
+    df_dict["trips"] = df_dict["trips"][mask]
 
 
 def fill_missing_service_ids_in_calendar(
@@ -325,29 +315,33 @@ def fill_missing_service_ids_in_calendar(
     """
     service_ids_not_in_calendar = np.unique(
         [
-            item
-            for item in calendar_dates_service_ids
-            if item not in calendar_service_ids
+            service_id
+            for service_id in calendar_dates_service_ids
+            if service_id not in calendar_service_ids
         ]
     )
     for service_id in service_ids_not_in_calendar:
-        mask = df_dict["calendar_dates"]["service_id"] == service_id
-        df_calendar_dates_subset = df_dict["calendar_dates"][mask].iloc[0]
-        dummy_calendar_service = pd.DataFrame(
-            {
-                "monday": 0,
-                "tuesday": 0,
-                "wednesday": 0,
-                "thursday": 0,
-                "friday": 0,
-                "saturday": 0,
-                "sunday": 0,
-                "start_date": df_calendar_dates_subset["date"],
-                "end_date": df_calendar_dates_subset["date"],
-                "service_id": service_id,
-            },
-            index=[0],
-        )
+        dummy_calendar_service = create_dummy_calendar_service(df_dict, service_id)
         df_dict["calendar"] = pd.concat(
             [dummy_calendar_service, df_dict["calendar"].loc[:]]
         ).reset_index(drop=True)
+
+
+def create_dummy_calendar_service(df_dict, service_id):
+    mask = df_dict["calendar_dates"]["service_id"] == service_id
+    df_calendar_dates_subset = df_dict["calendar_dates"][mask].iloc[0]
+    return pd.DataFrame(
+        {
+            "monday": 0,
+            "tuesday": 0,
+            "wednesday": 0,
+            "thursday": 0,
+            "friday": 0,
+            "saturday": 0,
+            "sunday": 0,
+            "start_date": df_calendar_dates_subset["date"],
+            "end_date": df_calendar_dates_subset["date"],
+            "service_id": service_id,
+        },
+        index=[0],
+    )

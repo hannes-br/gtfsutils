@@ -256,12 +256,6 @@ def filter_by_calendar(df_dict, start_date, end_date):
     service_ids = np.unique(
         np.concatenate((calendar_dates_service_ids, calendar_service_ids))
     )
-    filter_by_service_ids(df_dict, service_ids)
-
-
-def filter_by_service_ids(df_dict, service_ids):
-    if not isinstance(service_ids, list) and not isinstance(service_ids, np.ndarray):
-        service_ids = [service_ids]
 
     # Filter trips.txt
     mask = df_dict["trips"]["service_id"].isin(service_ids)

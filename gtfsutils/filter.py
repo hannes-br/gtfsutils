@@ -279,9 +279,9 @@ def filter_by_service_ids(df_dict, service_ids):
     stop_ids = df_dict["stop_times"]["stop_id"].values
     stop_ids_mask = df_dict["stops"]["stop_id"].isin(stop_ids)
     parent_stations = df_dict["stops"].loc[stop_ids_mask, "parent_station"].values
-    mask = df_dict["stops"]["stop_id"].isin(
-        np.unique(np.concatenate((stop_ids, parent_stations)))
-    )
+
+    stop_ids_including_parent_stations = set(list(stop_ids) + list(parent_stations))
+    mask = df_dict["stops"]["stop_id"].isin(stop_ids_including_parent_stations)
     df_dict["stops"] = df_dict["stops"][mask]
 
     # Filter routes.txt

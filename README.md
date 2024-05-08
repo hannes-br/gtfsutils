@@ -41,7 +41,7 @@ gtfsutils filter -t shapes data/vienna.gtfs.zip data/vienna-filtered.gtfs.zip da
 Here is how to filter a GTFS file based on calendar and calendar_dates, using a start and end date:
 
 ```bash
-gtfsutils filter -t shapes data/vienna.gtfs.zip data/vienna-filtered.gtfs.zip '{"start_date": "20240121", "end_date": "20240129"}'
+gtfsutils filter -t calendar data/vienna.gtfs.zip data/vienna-filtered.gtfs.zip '{"start_date": "20240121", "end_date": "20240129"}'
 ```
 
 For more information, type:

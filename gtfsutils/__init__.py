@@ -98,12 +98,42 @@ GTFS_ENUM_DATA_TYPES = {
     },
 }
 
+GTFS_ID_DATA_TYPES = {
+    "agency_id": "string",
+    "service_id": "string",
+    "level_id": "string",
+    "stop_id": "string",
+    "zone_id": "string",
+    "level_id": "string",
+    "route_id": "string",
+    "fare_id": "string",
+    "origin_id": "string",
+    "destination_id": "string",
+    "contains_id": "string",
+    "shape_id": "string",
+    "trip_id": "string",
+    "block_id": "string",
+    "from_stop_id": "string",
+    "to_stop_id": "string",
+    "from_route_id": "string",
+    "to_stop_id": "string",
+    "pathway_id": "string",
+    "record_id": "string",
+    "record_sub_id": "string",
+}
+
 
 def cast_gtfs_enum_columns(df_dict, filekey):
     if filekey in GTFS_ENUM_DATA_TYPES.keys():
         for column, dtype in GTFS_ENUM_DATA_TYPES[filekey].items():
             if column in df_dict[filekey].columns:
                 df_dict[filekey][column] = df_dict[filekey][column].astype(dtype)
+
+
+def cast_gtfs_ids(df_dict, filekey):
+    for id, dtype in GTFS_ID_DATA_TYPES.items():
+        if id in df_dict[filekey].columns:
+            df_dict[filekey][id] = df_dict[filekey][id].astype(dtype)
 
 
 def load_gtfs(filepath, subset=None):
@@ -129,6 +159,7 @@ def load_gtfs(filepath, subset=None):
                             z.open(filename), low_memory=False
                         )
                         cast_gtfs_enum_columns(df_dict, filekey)
+                        cast_gtfs_ids(df_dict, filekey)
                     except Exception as e:
                         logger.error(f"[{e.__class__.__name__}] {e} for {filename}")
 

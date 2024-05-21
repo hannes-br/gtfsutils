@@ -10,6 +10,21 @@ from . import load_shapes, load_stops
 logger = logging.getLogger(__name__)
 
 
+def filter_stops_including_stations_by_stop_ids(df_dict, stop_ids):
+    stop_ids_mask = df_dict["stops"]["stop_id"].isin(stop_ids)
+    parent_stations = [
+        parent_station
+        for parent_station in df_dict["stops"]
+        .loc[stop_ids_mask, "parent_station"]
+        .values
+        if pd.notna(parent_station)
+    ]
+    mask = df_dict["stops"]["stop_id"].isin(
+        np.unique(np.concatenate((stop_ids, parent_stations)))
+    )
+    df_dict["stops"] = df_dict["stops"][mask]
+
+
 def spatial_filter_by_stops(df_dict, filter_geometry):
     if isinstance(filter_geometry, list) or isinstance(filter_geometry, np.ndarray):
         if len(filter_geometry) != 4:
@@ -20,13 +35,55 @@ def spatial_filter_by_stops(df_dict, filter_geometry):
     else:
         raise ValueError(f"filter_geometry type {type(filter_geometry)} not supported!")
 
-    # Filter stops.
+    # Filter stops.txt
     gdf_stops = load_stops(df_dict)
     mask = gdf_stops.intersects(geom)
 
     gdf_stops = gdf_stops[mask]
     stop_ids = gdf_stops["stop_id"].values
     filter_by_stop_ids(df_dict, stop_ids)
+
+    # Subset shapes.
+    if "shapes" in df_dict:
+        gdf_shapes = load_shapes(df_dict, geom_type="point")
+        mask = gdf_shapes.intersects(geom)
+        df_dict["shapes"] = df_dict["shapes"][mask]
+
+
+def spatial_filter_by_stations(df_dict, filter_geometry):
+    if isinstance(filter_geometry, list) or isinstance(filter_geometry, np.ndarray):
+        if len(filter_geometry) != 4:
+            raise ValueError("Wrong dimension of bounds")
+        geom = shapely.geometry.box(*filter_geometry)
+    elif isinstance(filter_geometry, shapely.geometry.base.BaseGeometry):
+        geom = filter_geometry
+    else:
+        raise ValueError(f"filter_geometry type {type(filter_geometry)} not supported!")
+
+    # Filter stops.txt
+    gdf_stops = load_stops(df_dict)
+    # filter spatially
+    mask = gdf_stops.intersects(geom)
+    stop_ids = gdf_stops[mask, "stop_id"].values
+
+    # make sure all parent_stations of pre-filtered stops/stations are present
+    parent_stations = [
+        parent_station
+        for parent_station in gdf_stops.loc[mask, "parent_station"].values
+        if pd.notna(parent_station)
+    ]
+    combined_stop_ids_and_parent_stations = np.unique(
+        np.concatenate((stop_ids, parent_stations))
+    )
+    # get all stops of all parent_stations
+    mask = gdf_stops[
+        gdf_stops["parent_station"].isin(combined_stop_ids_and_parent_stations)
+    ]
+    additional_stop_ids = gdf_stops.loc[mask, "stop_id"]
+    stop_ids_inclusive = np.unique(
+        np.concatenate((combined_stop_ids_and_parent_stations, additional_stop_ids))
+    )
+    filter_by_stop_ids(df_dict, stop_ids_inclusive)
 
     # Subset shapes.
     if "shapes" in df_dict:
@@ -146,8 +203,7 @@ def filter_by_shape_ids(df_dict, shape_ids):
 
     # Filter stops.txt
     stop_ids = df_dict["stop_times"]["stop_id"].values
-    mask = df_dict["stops"]["stop_id"].isin(stop_ids)
-    df_dict["stops"] = df_dict["stops"][mask]
+    filter_stops_including_stations_by_stop_ids(df_dict, stop_ids)
 
     # Filter calendar.txt
     if "calendar" in df_dict:
@@ -198,8 +254,7 @@ def filter_by_agency_ids(df_dict, agency_ids):
 
     # Filter stops.txt
     stops_ids = df_dict["stop_times"]["stop_id"].values
-    mask = df_dict["stops"]["stop_id"].isin(stops_ids)
-    df_dict["stops"] = df_dict["stops"][mask]
+    filter_stops_including_stations_by_stop_ids(stops_ids)
 
     # Filter shapes.txt
     if "shapes" in df_dict:
@@ -277,12 +332,7 @@ def filter_by_service_ids(df_dict, service_ids):
 
     # Filter stops.txt
     stop_ids = df_dict["stop_times"]["stop_id"].values
-    stop_ids_mask = df_dict["stops"]["stop_id"].isin(stop_ids)
-    parent_stations = df_dict["stops"].loc[stop_ids_mask, "parent_station"].values
-
-    stop_ids_including_parent_stations = set(list(stop_ids) + list(parent_stations))
-    mask = df_dict["stops"]["stop_id"].isin(stop_ids_including_parent_stations)
-    df_dict["stops"] = df_dict["stops"][mask]
+    filter_stops_including_stations_by_stop_ids(df_dict, stop_ids)
 
     # Filter routes.txt
     route_ids = df_dict["trips"]["route_id"].values

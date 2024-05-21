@@ -30,7 +30,7 @@ def main():
         "-t",
         "--target",
         dest="target",
-        help="Filter target (stops, shapes, calendar)",
+        help="Filter target (stops, stations, shapes, calendar)",
         default="stops",
     )
     parser_filter.add_argument(
@@ -103,6 +103,9 @@ def main():
         if args.target == "stops":
             t = time.time()
             gtfsutils.filter.spatial_filter_by_stops(df_dict, bounds)
+        elif args.target == "stations":
+            t = time.time()
+            gtfsutils.filter.spatial_filter_by_stations(df_dict, bounds)
         elif args.target == "shapes":
             t = time.time()
             gtfsutils.filter.spatial_filter_by_shapes(

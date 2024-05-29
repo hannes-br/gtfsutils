@@ -103,6 +103,7 @@ GTFS_ID_DATA_TYPES = {
     "service_id": "string",
     "level_id": "string",
     "stop_id": "string",
+    "parent_station": "string",
     "zone_id": "string",
     "level_id": "string",
     "route_id": "string",
@@ -121,6 +122,11 @@ GTFS_ID_DATA_TYPES = {
     "record_id": "string",
     "record_sub_id": "string",
 }
+
+
+def cast_lat_lon(df_dict):
+    df_dict["stops"]["stop_lat"] = df_dict["stops"]["stop_lat"].astype(float)
+    df_dict["stops"]["stop_lon"] = df_dict["stops"]["stop_lon"].astype(float)
 
 
 def cast_gtfs_enum_columns(df_dict, filekey):
@@ -147,6 +153,9 @@ def load_gtfs(filepath, subset=None):
                         os.path.join(filepath, filename), low_memory=False
                     )
                     cast_gtfs_enum_columns(df_dict, filekey)
+                    cast_gtfs_ids(df_dict, filekey)
+                    if filekey == "stops":
+                        cast_lat_lon(df_dict)
                 except Exception as e:
                     logger.error(f"[{e.__class__.__name__}] {e} for {filename}")
     else:
@@ -160,6 +169,8 @@ def load_gtfs(filepath, subset=None):
                         )
                         cast_gtfs_enum_columns(df_dict, filekey)
                         cast_gtfs_ids(df_dict, filekey)
+                        if filekey == "stops":
+                            cast_lat_lon(df_dict)
                     except Exception as e:
                         logger.error(f"[{e.__class__.__name__}] {e} for {filename}")
 

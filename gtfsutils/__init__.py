@@ -98,30 +98,30 @@ GTFS_ENUM_DATA_TYPES = {
     },
 }
 
-GTFS_ID_DATA_TYPES = {
-    "agency_id": "string",
-    "service_id": "string",
-    "level_id": "string",
-    "stop_id": "string",
-    "parent_station": "string",
-    "zone_id": "string",
-    "level_id": "string",
-    "route_id": "string",
-    "fare_id": "string",
-    "origin_id": "string",
-    "destination_id": "string",
-    "contains_id": "string",
-    "shape_id": "string",
-    "trip_id": "string",
-    "block_id": "string",
-    "from_stop_id": "string",
-    "to_stop_id": "string",
-    "from_route_id": "string",
-    "to_stop_id": "string",
-    "pathway_id": "string",
-    "record_id": "string",
-    "record_sub_id": "string",
-}
+GTFS_IDS = [
+    "agency_id",
+    "service_id",
+    "level_id",
+    "stop_id",
+    "parent_station",
+    "zone_id",
+    "level_id",
+    "route_id",
+    "fare_id",
+    "origin_id",
+    "destination_id",
+    "contains_id",
+    "shape_id",
+    "trip_id",
+    "block_id",
+    "from_stop_id",
+    "to_stop_id",
+    "from_route_id",
+    "to_stop_id",
+    "pathway_id",
+    "record_id",
+    "record_sub_id",
+]
 
 
 def cast_lat_lon(df_dict):
@@ -137,9 +137,9 @@ def cast_gtfs_enum_columns(df_dict, filekey):
 
 
 def cast_gtfs_ids(df_dict, filekey):
-    for id, dtype in GTFS_ID_DATA_TYPES.items():
+    for id in GTFS_IDS.items():
         if id in df_dict[filekey].columns:
-            df_dict[filekey][id] = df_dict[filekey][id].astype(dtype)
+            df_dict[filekey][id] = df_dict[filekey][id].to_string()
 
 
 def load_gtfs(filepath, subset=None):

@@ -43,12 +43,6 @@ def spatial_filter_by_stops(df_dict, filter_geometry):
     stop_ids = gdf_stops["stop_id"].values
     filter_by_stop_ids(df_dict, stop_ids)
 
-    # Subset shapes.
-    if "shapes" in df_dict:
-        gdf_shapes = load_shapes(df_dict, geom_type="point")
-        mask = gdf_shapes.intersects(geom)
-        df_dict["shapes"] = df_dict["shapes"][mask]
-
 
 def get_stop_ids_including_stations_within_geometry(df_dict, geom):
     # Spatially filter stops.txt
@@ -85,12 +79,6 @@ def spatial_filter_by_stations(df_dict, filter_geometry):
 
     stop_ids = get_stop_ids_including_stations_within_geometry(df_dict, geom)
     filter_by_stop_ids(df_dict, stop_ids)
-
-    # Subset shapes.
-    if "shapes" in df_dict:
-        gdf_shapes = load_shapes(df_dict, geom_type="point")
-        mask = gdf_shapes.intersects(geom)
-        df_dict["shapes"] = df_dict["shapes"][mask]
 
 
 def filter_by_stop_ids(df_dict, stop_ids):

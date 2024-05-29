@@ -32,6 +32,12 @@ Here is how to spatially filter a GTFS file based on stop locations, using a bou
 gtfsutils filter -t stops data/vienna.gtfs.zip data/vienna-filtered.gtfs.zip "[16.197, 47.999, 16.549, 48.301]"
 ```
 
+Here is how to spatially filter a GTFS file based on stop and station locations returning complete stations only, using a bounding box. All parent station and child stops are returned if one of them is located within the filter boundary:
+
+```bash
+gtfsutils filter -t stations data/vienna.gtfs.zip data/vienna-filtered.gtfs.zip "[16.197, 47.999, 16.549, 48.301]"
+```
+
 Here is how to spatially filter a GTFS file based on trip shapes, using a GeoJSON file:
 
 ```bash

@@ -50,6 +50,29 @@ def spatial_filter_by_stops(df_dict, filter_geometry):
         df_dict["shapes"] = df_dict["shapes"][mask]
 
 
+def get_stop_ids_including_stations_within_geometry(df_dict, geom):
+    # Spatially filter stops.txt
+    gdf_stops = load_stops(df_dict)
+    mask = gdf_stops.intersects(geom)
+    stop_ids = gdf_stops.loc[mask, "stop_id"].values
+
+    # make sure all parent_stations of pre-filtered stops/stations are included
+    parent_stations = [
+        parent_station
+        for parent_station in gdf_stops.loc[mask, "parent_station"].values
+        if pd.notna(parent_station)
+    ]
+    combined_stop_ids_and_parent_stations = np.unique(
+        np.concatenate((stop_ids, parent_stations))
+    )
+    # make sure all child stops of all parent_stations are included
+    mask = gdf_stops["parent_station"].isin(combined_stop_ids_and_parent_stations)
+    additional_stop_ids = gdf_stops.loc[mask, "stop_id"]
+    return np.unique(
+        np.concatenate((combined_stop_ids_and_parent_stations, additional_stop_ids))
+    )
+
+
 def spatial_filter_by_stations(df_dict, filter_geometry):
     if isinstance(filter_geometry, list) or isinstance(filter_geometry, np.ndarray):
         if len(filter_geometry) != 4:
@@ -60,30 +83,8 @@ def spatial_filter_by_stations(df_dict, filter_geometry):
     else:
         raise ValueError(f"filter_geometry type {type(filter_geometry)} not supported!")
 
-    # Filter stops.txt
-    gdf_stops = load_stops(df_dict)
-    # filter spatially
-    mask = gdf_stops.intersects(geom)
-    stop_ids = gdf_stops[mask, "stop_id"].values
-
-    # make sure all parent_stations of pre-filtered stops/stations are present
-    parent_stations = [
-        parent_station
-        for parent_station in gdf_stops.loc[mask, "parent_station"].values
-        if pd.notna(parent_station)
-    ]
-    combined_stop_ids_and_parent_stations = np.unique(
-        np.concatenate((stop_ids, parent_stations))
-    )
-    # get all stops of all parent_stations
-    mask = gdf_stops[
-        gdf_stops["parent_station"].isin(combined_stop_ids_and_parent_stations)
-    ]
-    additional_stop_ids = gdf_stops.loc[mask, "stop_id"]
-    stop_ids_inclusive = np.unique(
-        np.concatenate((combined_stop_ids_and_parent_stations, additional_stop_ids))
-    )
-    filter_by_stop_ids(df_dict, stop_ids_inclusive)
+    stop_ids = get_stop_ids_including_stations_within_geometry(df_dict, geom)
+    filter_by_stop_ids(df_dict, stop_ids)
 
     # Subset shapes.
     if "shapes" in df_dict:
